@@ -17,7 +17,7 @@ does not depend on the user's CMYK settings.
 | Caucasian | 0.82 | 0.30 | 3.20: 17/40/50/1 · 3.23: 10/33/40/0 |
 | Child | 0.84 | 0.22 | 3.23: 4/20/23/0 · 3.27: 7/21/27/0 |
 | Asian | 0.77 | 0.33 | 3.25: 20/45/59/1 |
-| Dark / African | 0.96 | 0.47 | 3.24: 34/70/70/24 |
+| African | 0.96 | 0.47 | 3.24: 34/70/70/24 |
 
 The ratio rule is a midtone rule: below L≈60 SWOP moves density into K and fixed
 CMY ratios would ask for over-saturated shadows. So hue always follows the
@@ -32,10 +32,10 @@ and emits one curve point per group per channel.
 
 1. Load `plugin/` in **UXP Developer Tool** (Add Plugin → `plugin/manifest.json` → Load).
 2. Open an RGB image (sRGB, Adobe RGB, Display P3 or ProPhoto RGB).
-3. Set the Eyedropper's Sample Size to 5×5 or 11×11 Average, then Shift-click skin
-   to drop Color Samplers. Midtones (forehead, cheek, chin) matter most; add a
+3. Click **Color Sampler** in the panel to select the tool. Set its Sample Size to
+   5×5 or 11×11 Average in the options bar, then click skin to drop samplers. Midtones (forehead, cheek, chin) matter most; add a
    highlight and a shadow sampler for separate tonal points.
-4. In the **Skin Tone** panel pick a preset, then **Analyze** (preview with
+4. In the **Skin Tone** panel click a preset face, then **Analyze** (preview with
    Info-panel style CMYK) or **Apply** (adds a `Skin Tone – <preset>` Curves layer).
    To soften the correction, lower the layer's opacity.
 5. Optional: tick **Keep whites neutral** and drop one more sampler, *last*, on

@@ -11,25 +11,38 @@ const LAYER_PREFIX = 'Skin Tone – ';
 
 const $ = (id) => document.getElementById(id);
 
+let selectedPreset = skin.PRESETS[0].key;
+
+function selectPreset(key) {
+  selectedPreset = key;
+  for (const tile of $('presets').children) {
+    tile.className = tile.getAttribute('data-key') === key ? 'preset selected' : 'preset';
+  }
+}
+
 function init() {
-  const menu = $('presetMenu');
-  skin.PRESETS.forEach((p, i) => {
-    const item = document.createElement('sp-menu-item');
-    item.setAttribute('value', p.key);
-    item.textContent = p.label;
-    if (i === 0) item.setAttribute('selected', '');
-    menu.appendChild(item);
+  for (const p of skin.PRESETS) {
+    const tile = document.createElement('div');
+    tile.className = 'preset';
+    tile.setAttribute('data-key', p.key);
+    tile.title = `${p.label} skin preset`;
+    tile.innerHTML = `<img src="icons/preset-${p.key}.png" alt="" width="48" height="48"><span>${p.label}</span>`;
+    tile.addEventListener('click', () => selectPreset(p.key));
+    $('presets').appendChild(tile);
+  }
+  selectPreset(selectedPreset);
+  $('sampler').addEventListener('click', selectSamplerTool);
+  $('detailsToggle').addEventListener('click', () => {
+    detailsOpen = !detailsOpen;
+    updateDetailsToggle();
   });
   $('analyze').addEventListener('click', () => run(analyze));
   $('apply').addEventListener('click', () => run(apply));
 }
 
 function options() {
-  const items = [...$('presetMenu').querySelectorAll('sp-menu-item')];
-  const idx = $('preset').selectedIndex;
-  const preset = items[idx >= 0 ? idx : 0].getAttribute('value');
   return {
-    preset,
+    preset: selectedPreset,
     splitByLightness: $('split').checked,
     keepWhitesNeutral: $('neutral').checked,
     replace: $('replace').checked,
@@ -41,6 +54,28 @@ function options() {
 function clearResults() {
   setStatus('');
   $('samples').innerHTML = '';
+  $('details').style.display = 'none';
+}
+
+// Per-sampler numbers fold out under a "Details" line; the choice sticks.
+let detailsOpen = false;
+
+function updateDetailsToggle() {
+  const n = $('samples').children.length;
+  $('detailsToggle').textContent = `${detailsOpen ? '▾' : '▸'} Details (${n} sampler${n === 1 ? '' : 's'})`;
+  $('samples').style.display = detailsOpen ? 'block' : 'none';
+}
+
+// Color Sampler is the Eyedropper variant that drops a sampler on each click.
+async function selectSamplerTool() {
+  try {
+    await psCore.executeAsModal(
+      () => action.batchPlay([{ _obj: 'select', _target: [{ _ref: 'colorSamplerTool' }] }], {}),
+      { commandName: 'Select Color Sampler Tool' },
+    );
+  } catch (e) {
+    console.warn('Could not select the Color Sampler tool', e);
+  }
 }
 
 function setStatus(text, isError = false) {
@@ -76,7 +111,10 @@ function readSamplers(doc) {
     const { red, green, blue } = samplers[i].color.rgb;
     out.push([red, green, blue]);
   }
-  if (out.length === 0) throw new Error('No Color Samplers. Shift-click skin with the Eyedropper tool to add some.');
+  if (out.length === 0) {
+    selectSamplerTool();
+    throw new Error('No Color Samplers yet. The Color Sampler tool is selected: click skin to add some.');
+  }
   return out;
 }
 
@@ -145,6 +183,8 @@ function render({ samples, neutral, result }, profile) {
     const title = `#${samples.length + 1} <span class="ref">white reference, ${state}</span>`;
     box.appendChild(sampleRow(title, neutral, skin.applyCurves(result.curves, neutral), space));
   }
+  $('details').style.display = 'block';
+  updateDetailsToggle();
 }
 
 async function analyze(opts) {
@@ -202,7 +242,10 @@ async function apply(opts) {
 
 entrypoints.setup({
   panels: {
-    skinTonePanel: { show: clearResults, hide: clearResults },
+    skinTonePanel: {
+      show: clearResults,
+      hide: clearResults,
+    },
   },
 });
 action.addNotificationListener(['select', 'open', 'close', 'newDocument'], (event, descriptor) => {

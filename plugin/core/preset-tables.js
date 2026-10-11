@@ -23,7 +23,7 @@ const PRESET_META = {
     "maxChroma": 37.8
   },
   "dark": {
-    "label": "Dark / African",
+    "label": "African",
     "mOverY": 0.96,
     "cOverY": 0.47,
     "maxChroma": 35.1

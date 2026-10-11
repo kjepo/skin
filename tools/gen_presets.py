@@ -38,7 +38,7 @@ PRESETS = {
     "caucasian": {"label": "Caucasian", "mOverY": 0.82, "cOverY": 0.30},
     "child": {"label": "Child", "mOverY": 0.84, "cOverY": 0.22},
     "asian": {"label": "Asian", "mOverY": 0.77, "cOverY": 0.33},
-    "dark": {"label": "Dark / African", "mOverY": 0.96, "cOverY": 0.47},
+    "dark": {"label": "African", "mOverY": 0.96, "cOverY": 0.47},
 }
 MIDTONE_BAND = (60, 92)
 CHROMA_HEADROOM = 1.15
