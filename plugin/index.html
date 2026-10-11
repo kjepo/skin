@@ -3,7 +3,15 @@
 <head>
   <meta charset="utf-8">
   <style>
-    body { padding: 8px 12px; color: var(--uxp-host-text-color); font-size: var(--uxp-host-font-size); }
+    /* Controls stay put; the results area below fills the rest and scrolls. */
+    html, body { height: 100%; margin: 0; }
+    body { display: flex; flex-direction: column; box-sizing: border-box; padding: 8px 12px 0;
+           color: var(--uxp-host-text-color); font-size: var(--uxp-host-font-size); }
+    #controls { flex-shrink: 0; }
+    #title { margin: 0 0 8px; }
+    #footer { flex-shrink: 0; padding: 6px 0 8px; font-size: 10px; opacity: 0.6; text-align: center;
+              border-top: 1px solid var(--uxp-host-border-color); }
+    #results { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 8px; }
     #presets { display: flex; margin-bottom: 12px; }
     .preset { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 2px 4px;
               margin: 0 3px; border: 2px solid transparent; border-radius: 6px; cursor: pointer; }
@@ -32,32 +40,39 @@
   </style>
 </head>
 <body>
-  <div id="intro">
-    <img src="icons/face.png" alt="" width="128" height="128">
-    <div id="hint">Click the eyedropper below, then click skin (forehead, cheek, chin…). Then Analyze or Apply.</div>
+  <div id="controls">
+    <sp-heading id="title" size="S">SKIN COLOR CORRECTION</sp-heading>
+    <div id="intro">
+      <img src="icons/face.png" alt="" width="128" height="128">
+      <div id="hint">Click the eyedropper below, then click skin (forehead, cheek, chin…). Then Analyze or Apply.</div>
+    </div>
+
+    <div id="presets"></div>
+
+    <sp-checkbox id="split" checked>Separate highlight / shadow points</sp-checkbox>
+    <sp-checkbox id="neutral">Keep whites neutral (last sampler is on white)</sp-checkbox>
+    <sp-checkbox id="replace" checked>Replace previous Skin Tone layer</sp-checkbox>
+
+    <div class="buttons">
+      <sp-action-button id="sampler" title="Select the Color Sampler tool" aria-label="Color Sampler">
+        <svg slot="icon" width="18" height="18" viewBox="0 0 18 18">
+          <path fill="currentColor" d="M15.6 2.4a2.1 2.1 0 0 0-3 0l-2 2-1-1-1.4 1.4 1 1-6.1 6.1a1 1 0 0 0-.3.6l-.3 2.3-.8.8 1.4 1.4.8-.8 2.3-.3a1 1 0 0 0 .6-.3l6.1-6.1 1 1 1.4-1.4-1-1 2-2a2.1 2.1 0 0 0 0-3ZM5.8 14.2l-1.5.2.2-1.5 6-6 1.3 1.3Z"/>
+        </svg>
+      </sp-action-button>
+      <sp-button id="analyze" variant="secondary">Analyze</sp-button>
+      <sp-button id="apply" variant="cta">Apply</sp-button>
+    </div>
   </div>
 
-  <div id="presets"></div>
-
-  <sp-checkbox id="split" checked>Separate highlight / shadow points</sp-checkbox>
-  <sp-checkbox id="neutral">Keep whites neutral (last sampler is on white)</sp-checkbox>
-  <sp-checkbox id="replace" checked>Replace previous Skin Tone layer</sp-checkbox>
-
-  <div class="buttons">
-    <sp-action-button id="sampler" title="Select the Color Sampler tool" aria-label="Color Sampler">
-      <svg slot="icon" width="18" height="18" viewBox="0 0 18 18">
-        <path fill="currentColor" d="M15.6 2.4a2.1 2.1 0 0 0-3 0l-2 2-1-1-1.4 1.4 1 1-6.1 6.1a1 1 0 0 0-.3.6l-.3 2.3-.8.8 1.4 1.4.8-.8 2.3-.3a1 1 0 0 0 .6-.3l6.1-6.1 1 1 1.4-1.4-1-1 2-2a2.1 2.1 0 0 0 0-3ZM5.8 14.2l-1.5.2.2-1.5 6-6 1.3 1.3Z"/>
-      </svg>
-    </sp-action-button>
-    <sp-button id="analyze" variant="secondary">Analyze</sp-button>
-    <sp-button id="apply" variant="cta">Apply</sp-button>
+  <div id="results">
+    <div id="status"></div>
+    <div id="details">
+      <div id="detailsToggle"></div>
+      <div id="samples"></div>
+    </div>
   </div>
 
-  <div id="status"></div>
-  <div id="details">
-    <div id="detailsToggle"></div>
-    <div id="samples"></div>
-  </div>
+  <div id="footer">© Kjell Post</div>
 
   <script src="main.js"></script>
 </body>

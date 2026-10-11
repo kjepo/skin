@@ -13,7 +13,7 @@
       "type": "panel",
       "id": "skinTonePanel",
       "label": {
-        "default": "Skin Tone"
+        "default": "Skin color"
       },
       "minimumSize": {
         "width": 240,
