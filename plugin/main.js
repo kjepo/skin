@@ -252,5 +252,10 @@ action.addNotificationListener(['select', 'open', 'close', 'newDocument'], (even
   const target = descriptor && descriptor._target && descriptor._target[0];
   if (event !== 'select' || (target && target._ref === 'document')) clearResults();
 });
+// Photoshop doesn't tell the panel when it's closed or reopened, so clear
+// instead whenever the samplers change: results must match what's on the image.
+action.addNotificationListener(['make', 'delete', 'move', 'set'], (event, descriptor) => {
+  if (JSON.stringify(descriptor || {}).includes('colorSampler')) clearResults();
+});
 
 init();
