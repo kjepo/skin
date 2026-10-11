@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { padding: 8px 12px; color: var(--uxp-host-text-color); font-size: var(--uxp-host-font-size); }
+    .row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .row > sp-picker { flex: 1; }
+    sp-slider { width: 100%; }
+    .buttons { display: flex; gap: 8px; margin: 12px 0; }
+    #hint { opacity: 0.75; margin-bottom: 10px; }
+    #status { min-height: 16px; margin-bottom: 8px; }
+    #status.error { color: #e34850; }
+    .sample { border-top: 1px solid var(--uxp-host-border-color); padding: 6px 0; }
+    .sample .title { font-weight: bold; }
+    .sample .bad { color: #e68619; }
+    .sample .good { color: #2d9d78; }
+    .mono { font-family: monospace; }
+  </style>
+</head>
+<body>
+  <div id="hint">Shift-click skin with the Eyedropper to drop Color Samplers (forehead, cheek, chin…), then Analyze or Apply.</div>
+
+  <div class="row">
+    <sp-label>Preset</sp-label>
+    <sp-picker id="preset" size="s">
+      <sp-menu slot="options" id="presetMenu"></sp-menu>
+    </sp-picker>
+  </div>
+
+  <sp-slider id="strength" min="0" max="100" value="100" show-value>
+    <sp-label slot="label">Strength</sp-label>
+  </sp-slider>
+
+  <sp-checkbox id="split" checked>Separate highlight / shadow points</sp-checkbox>
+  <sp-checkbox id="replace" checked>Replace previous Skin Tone layer</sp-checkbox>
+
+  <div class="buttons">
+    <sp-button id="analyze" variant="secondary">Analyze</sp-button>
+    <sp-button id="apply" variant="cta">Apply</sp-button>
+  </div>
+
+  <div id="status"></div>
+  <div id="samples"></div>
+
+  <script src="main.js"></script>
+</body>
+</html>

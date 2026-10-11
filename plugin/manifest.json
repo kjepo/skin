@@ -1,0 +1,20 @@
+{
+  "manifestVersion": 5,
+  "id": "skin.tone.curves",
+  "name": "Skin Tone Curves",
+  "version": "0.1.0",
+  "main": "index.html",
+  "host": { "app": "PS", "minVersion": "24.0.0" },
+  "entrypoints": [
+    {
+      "type": "panel",
+      "id": "skinTonePanel",
+      "label": { "default": "Skin Tone" },
+      "minimumSize": { "width": 240, "height": 320 },
+      "maximumSize": { "width": 2000, "height": 2000 },
+      "preferredDockedSize": { "width": 300, "height": 480 },
+      "preferredFloatingSize": { "width": 300, "height": 480 }
+    }
+  ],
+  "requiredPermissions": {}
+}

@@ -1,0 +1,191 @@
+[
+ {
+  "name": "fig3.20 caucasian",
+  "preset": "caucasian",
+  "good": true,
+  "cmyk": [
+   17,
+   40,
+   50,
+   1
+  ],
+  "lab": [
+   69.107,
+   16.761,
+   23.534
+  ],
+  "adobeRgb": [
+   193.902,
+   155.513,
+   127.327
+  ]
+ },
+ {
+  "name": "fig3.23 mother",
+  "preset": "caucasian",
+  "good": true,
+  "cmyk": [
+   10,
+   33,
+   40,
+   0
+  ],
+  "lab": [
+   76.087,
+   16.11,
+   21.58
+  ],
+  "adobeRgb": [
+   212.589,
+   174.745,
+   148.488
+  ]
+ },
+ {
+  "name": "fig3.23 child",
+  "preset": "child",
+  "good": true,
+  "cmyk": [
+   4,
+   20,
+   23,
+   0
+  ],
+  "lab": [
+   85.454,
+   10.454,
+   13.939
+  ],
+  "adobeRgb": [
+   230.86,
+   204.969,
+   187.103
+  ]
+ },
+ {
+  "name": "fig3.27 girl highlight",
+  "preset": "child",
+  "good": true,
+  "cmyk": [
+   7,
+   21,
+   27,
+   0
+  ],
+  "lab": [
+   83.577,
+   9.385,
+   15.307
+  ],
+  "adobeRgb": [
+   224.59,
+   200.341,
+   179.443
+  ]
+ },
+ {
+  "name": "fig3.24 dark",
+  "preset": "dark",
+  "good": true,
+  "cmyk": [
+   34,
+   70,
+   70,
+   24
+  ],
+  "lab": [
+   41.753,
+   24.221,
+   18.64
+  ],
+  "adobeRgb": [
+   126.634,
+   82.87,
+   71.437
+  ]
+ },
+ {
+  "name": "fig3.25 asian",
+  "preset": "asian",
+  "good": true,
+  "cmyk": [
+   20,
+   45,
+   59,
+   1
+  ],
+  "lab": [
+   65.682,
+   18.524,
+   27.154
+  ],
+  "adobeRgb": [
+   187.01,
+   145.194,
+   112.86
+  ]
+ },
+ {
+  "name": "fig3.26 girl highlight (too yellow)",
+  "preset": "child",
+  "good": false,
+  "cmyk": [
+   1,
+   26,
+   40,
+   0
+  ],
+  "lab": [
+   83.101,
+   15.478,
+   28.578
+  ],
+  "adobeRgb": [
+   234.374,
+   194.299,
+   154.506
+  ]
+ },
+ {
+  "name": "fig3.26 girl shadow (too yellow)",
+  "preset": "child",
+  "good": false,
+  "cmyk": [
+   37,
+   50,
+   79,
+   16
+  ],
+  "lab": [
+   50.883,
+   9.492,
+   29.328
+  ],
+  "adobeRgb": [
+   138.276,
+   113.963,
+   74.77
+  ]
+ },
+ {
+  "name": "fig3.28 baby (too red)",
+  "preset": "child",
+  "good": false,
+  "cmyk": [
+   3,
+   58,
+   47,
+   0
+  ],
+  "lab": [
+   67.364,
+   39.02,
+   25.457
+  ],
+  "adobeRgb": [
+   212.833,
+   133.183,
+   120.395
+  ]
+ }
+]

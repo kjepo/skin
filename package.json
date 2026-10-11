@@ -1,0 +1,11 @@
+{
+  "name": "skin-tone-curves",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Photoshop UXP plugin: set skin tone with RGB curves from Lee Varis-style presets",
+  "scripts": {
+    "test": "node --test",
+    "gen": "python3 -I tools/gen_presets.py"
+  },
+  "engines": { "node": ">=20" }
+}
