@@ -5,7 +5,8 @@
   "description": "Photoshop UXP plugin: set skin tone with RGB curves from Lee Varis-style presets",
   "scripts": {
     "test": "node --test",
-    "gen": "python3 -I tools/gen_presets.py"
+    "gen": "python3 -I tools/gen_presets.py",
+    "icons": "python3 -I tools/make_icons.py"
   },
   "engines": { "node": ">=20" }
 }

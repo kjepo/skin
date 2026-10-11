@@ -4,6 +4,7 @@
 // Curves adjustment layer.
 
 const { app, core: psCore, action, constants } = require('photoshop');
+const { entrypoints } = require('uxp');
 const skin = require('./core/index.js');
 
 const LAYER_PREFIX = 'Skin Tone – ';
@@ -29,10 +30,17 @@ function options() {
   const preset = items[idx >= 0 ? idx : 0].getAttribute('value');
   return {
     preset,
-    strength: Number($('strength').value) / 100,
     splitByLightness: $('split').checked,
+    keepWhitesNeutral: $('neutral').checked,
     replace: $('replace').checked,
   };
+}
+
+// Results describe one document at one moment; drop them when the panel is
+// reopened or the user moves to another document.
+function clearResults() {
+  setStatus('');
+  $('samples').innerHTML = '';
 }
 
 function setStatus(text, isError = false) {
@@ -72,6 +80,20 @@ function readSamplers(doc) {
   return out;
 }
 
+// With "keep whites neutral", the last sampler is the white reference.
+function splitSamples(all, opts) {
+  if (!opts.keepWhitesNeutral) return { samples: all, neutral: null };
+  if (all.length < 2) throw new Error('Keep whites neutral needs at least one skin sampler plus a last sampler on white.');
+  return { samples: all.slice(0, -1), neutral: all[all.length - 1] };
+}
+
+function solve(doc, opts) {
+  const all = readSamplers(doc);
+  const { samples, neutral } = splitSamples(all, opts);
+  const result = skin.solveCurves({ samples, neutral, profile: doc.colorProfileName, ...opts });
+  return { samples, neutral, result };
+}
+
 function findSkinLayers(layers, found = []) {
   for (const layer of layers) {
     if (layer.name.startsWith(LAYER_PREFIX)) found.push(layer);
@@ -95,34 +117,41 @@ function toCmyk(rgb) {
 
 const fmt = (v) => v.map((x) => Math.round(x)).join('/');
 
-function render(samples, result, profile) {
+function sampleRow(title, rgb, after, space) {
+  const cmyk = toCmyk(rgb), cmykAfter = toCmyk(after);
+  const div = document.createElement('div');
+  div.className = 'sample';
+  div.innerHTML =
+    `<div class="title">${title}</div>` +
+    `<div class="mono">RGB ${fmt(rgb)} → ${fmt(after)}</div>` +
+    (cmyk ? `<div class="mono">CMYK ${fmt(cmyk)} → ${fmt(cmykAfter)}</div>` : '') +
+    `<div class="mono">Lab ${fmt(skin.rgbToLab(rgb, space))} → ${fmt(skin.rgbToLab(after, space))}</div>`;
+  return div;
+}
+
+function render({ samples, neutral, result }, profile) {
   const space = skin.resolveSpace(profile);
   const box = $('samples');
   box.innerHTML = '';
   samples.forEach((rgb, i) => {
     const lab = skin.rgbToLab(rgb, space);
-    const target = skin.targetLab(result.preset, lab);
-    const notes = skin.diagnose(lab, target).notes;
-    const after = skin.applyCurves(result.curves, rgb);
-    const cmyk = toCmyk(rgb), cmykAfter = toCmyk(after);
-    const ok = notes[0] === 'ok';
-    const div = document.createElement('div');
-    div.className = 'sample';
-    div.innerHTML =
-      `<div class="title">#${i + 1} <span class="${ok ? 'good' : 'bad'}">${notes.join(', ')}</span></div>` +
-      `<div class="mono">RGB ${fmt(rgb)} → ${fmt(after)}</div>` +
-      (cmyk ? `<div class="mono">CMYK ${fmt(cmyk)} → ${fmt(cmykAfter)}</div>` : '') +
-      `<div class="mono">Lab ${fmt(lab)} → ${fmt(skin.rgbToLab(after, space))}</div>`;
-    box.appendChild(div);
+    const notes = skin.diagnose(lab, skin.targetLab(result.preset, lab)).notes;
+    const cls = notes[0] === 'ok' ? 'good' : 'bad';
+    const title = `#${i + 1} <span class="${cls}">${notes.join(', ')}</span>`;
+    box.appendChild(sampleRow(title, rgb, skin.applyCurves(result.curves, rgb), space));
   });
+  if (neutral) {
+    const state = result.neutral && result.neutral.ignored ? 'ignored' : 'kept neutral';
+    const title = `#${samples.length + 1} <span class="ref">white reference, ${state}</span>`;
+    box.appendChild(sampleRow(title, neutral, skin.applyCurves(result.curves, neutral), space));
+  }
 }
 
 async function analyze(opts) {
   const doc = activeRgbDocument();
-  const samples = readSamplers(doc);
-  const result = skin.solveCurves({ samples, profile: doc.colorProfileName, ...opts });
-  render(samples, result, doc.colorProfileName);
-  setStatus(['Preview of Apply (→ values are predicted).', ...result.warnings].join(' '));
+  const solved = solve(doc, opts);
+  render(solved, doc.colorProfileName);
+  setStatus(['Preview of Apply (→ values are predicted).', ...solved.result.warnings].join(' '));
 }
 
 function curvesDescriptor(curves) {
@@ -140,15 +169,14 @@ function curvesDescriptor(curves) {
 async function apply(opts) {
   const doc = activeRgbDocument();
   const label = skin.PRESETS.find((p) => p.key === opts.preset).label;
-  let result, samples;
+  let solved;
   await psCore.executeAsModal(async () => {
     // Sample the image without our previous correction on top of it.
     const previous = findSkinLayers(doc.layers);
     const wasVisible = previous.map((l) => l.visible);
     previous.forEach((l) => { l.visible = false; });
     try {
-      samples = readSamplers(doc);
-      result = skin.solveCurves({ samples, profile: doc.colorProfileName, ...opts });
+      solved = solve(doc, opts);
     } finally {
       previous.forEach((l, i) => { l.visible = wasVisible[i]; });
     }
@@ -163,13 +191,23 @@ async function apply(opts) {
       {
         _obj: 'set',
         _target: [{ _ref: 'adjustmentLayer', _enum: 'ordinal', _value: 'targetEnum' }],
-        to: curvesDescriptor(result.curves),
+        to: curvesDescriptor(solved.result.curves),
       },
     ], {});
   }, { commandName: `Skin Tone: ${label}` });
 
-  render(samples, result, doc.colorProfileName);
-  setStatus([`Added "${LAYER_PREFIX}${label}".`, ...result.warnings].join(' '));
+  render(solved, doc.colorProfileName);
+  setStatus([`Added "${LAYER_PREFIX}${label}".`, ...solved.result.warnings].join(' '));
 }
+
+entrypoints.setup({
+  panels: {
+    skinTonePanel: { show: clearResults, hide: clearResults },
+  },
+});
+action.addNotificationListener(['select', 'open', 'close', 'newDocument'], (event, descriptor) => {
+  const target = descriptor && descriptor._target && descriptor._target[0];
+  if (event !== 'select' || (target && target._ref === 'document')) clearResults();
+});
 
 init();

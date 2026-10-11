@@ -35,8 +35,16 @@ and emits one curve point per group per channel.
 3. Set the Eyedropper's Sample Size to 5×5 or 11×11 Average, then Shift-click skin
    to drop Color Samplers. Midtones (forehead, cheek, chin) matter most; add a
    highlight and a shadow sampler for separate tonal points.
-4. In the **Skin Tone** panel pick a preset and strength, then **Analyze** (preview
-   with Info-panel style CMYK) or **Apply** (adds a `Skin Tone – <preset>` Curves layer).
+4. In the **Skin Tone** panel pick a preset, then **Analyze** (preview with
+   Info-panel style CMYK) or **Apply** (adds a `Skin Tone – <preset>` Curves layer).
+   To soften the correction, lower the layer's opacity.
+5. Optional: tick **Keep whites neutral** and drop one more sampler, *last*, on
+   something that should be white (shirt, dress, wall). It is mapped to neutral at
+   its own lightness, as the book does before correcting skin. Whites take
+   priority: if skin and white can't both be met with a smooth curve, the skin
+   correction is scaled back and the panel says by how much. (Lowering layer
+   opacity afterwards also relaxes the white.) A white that isn't
+   brighter than the skin in every channel can't share the curve and is ignored.
 
 ## Development
 

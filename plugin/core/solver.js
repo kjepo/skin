@@ -5,7 +5,9 @@
 // each channel's curve, mapping it to the RGB of the preset target at the same
 // L. Curves are 1-D per channel, so groups must sit in the same order on all
 // three channels; if they don't, everything is merged into a single group.
-// Between and beyond the skin points the curve is a smooth monotone function.
+// An optional neutral reference (a white or grey sampler) adds one more point
+// mapping it to neutral at its own lightness, as Varis does before touching skin.
+// Between and beyond these points the curve is a smooth monotone function.
 
 const { rgbToLab, labToRgb, resolveSpace, deltaE } = require('./colorspaces.js');
 const { targetLab, diagnose } = require('./presets.js');
@@ -15,6 +17,10 @@ const MAX_GROUPS = 3;
 const MIN_POINT_SPACING = 8; // Photoshop's curve gets wild with closer points
 const MAX_END_SLOPE = 1.6; // steepest allowed segment to the black/white ends
 const GRID = [0, 32, 64, 96, 128, 160, 192, 224, 255];
+// A white reference may sit closer to skin than MIN_POINT_SPACING (bright skin
+// is nearly white in red), but the curve between them must stay this gentle.
+const NEUTRAL_MIN_SPACING = 3;
+const NEUTRAL_MAX_SLOPE = 3;
 
 const CHANNELS = ['red', 'green', 'blue'];
 
@@ -74,12 +80,12 @@ function channelKnots(points) {
 
 // The curve is built as a shift (output - input) interpolated without
 // overshoot, so no tone moves further than the skin points or the ends do.
-// Photoshop interpolates Curves with its own spline, so we hand it the skin
+// Photoshop interpolates Curves with its own spline, so we hand it the anchor
 // points plus a grid sampled from that curve to pin its shape.
-function curvesFromGroups(groups) {
+function curvesFromAnchors(anchors) {
   const curves = {};
   for (const [c, name] of CHANNELS.entries()) {
-    const points = groups.map((g) => [g.inputRgb[c], g.targetRgb[c]]);
+    const points = anchors.map((g) => [g.inputRgb[c], g.targetRgb[c]]);
     const shift = monotoneInterpolator(channelKnots(points).map(([x, y]) => [x, y - x]));
     const f = [];
     for (let x = 0; x <= 255; x++) f[x] = Math.min(255, Math.max(0, x + shift(x), x ? f[x - 1] : 0)); // never falls
@@ -91,11 +97,23 @@ function curvesFromGroups(groups) {
   return curves;
 }
 
-// Groups must sit in the same order on every channel (1-D curves can't map one
-// input to two outputs) and the curve must not fall.
-function groupsAreOrdered(groups) {
-  return [0, 1, 2].every((c) => groups.every((g, i) => i === 0 ||
-    (g.inputRgb[c] - groups[i - 1].inputRgb[c] >= MIN_POINT_SPACING && g.targetRgb[c] >= groups[i - 1].targetRgb[c])));
+// Anchors (sorted by lightness) must sit in the same order on every channel
+// (1-D curves can't map one input to two outputs) and the curve must not fall.
+function anchorsAreOrdered(anchors, minSpacing = MIN_POINT_SPACING, maxSlope = Infinity) {
+  return [0, 1, 2].every((c) => anchors.every((g, i) => {
+    if (i === 0) return true;
+    const dx = g.inputRgb[c] - anchors[i - 1].inputRgb[c];
+    const dy = g.targetRgb[c] - anchors[i - 1].targetRgb[c];
+    return dx >= minSpacing && dy >= 0 && dy / dx <= maxSlope;
+  }));
+}
+
+const byLightness = (p, q) => p.inputLab[0] - q.inputLab[0];
+
+function buildNeutral(rgb, space) {
+  const inputLab = rgbToLab(rgb, space);
+  const { rgb: targetRgb } = labToRgb([inputLab[0], 0, 0], space);
+  return { neutral: true, inputRgb: rgb, inputLab, targetLab: [inputLab[0], 0, 0], targetRgb };
 }
 
 function buildGroup(members, space, preset, strength) {
@@ -117,30 +135,56 @@ function buildGroup(members, space, preset, strength) {
  * @param {string} opts.preset       preset key: caucasian | child | asian | dark
  * @param {number} [opts.strength=1] 0..1, how far to move toward the preset
  * @param {boolean} [opts.splitByLightness=true] allow separate highlight/mid/shadow points
+ * @param {number[]} [opts.neutral] RGB of a white/grey reference to keep neutral (full strength)
  */
-function solveCurves({ samples, profile, preset, strength = 1, splitByLightness = true }) {
+function solveCurves({ samples, profile, preset, strength = 1, splitByLightness = true, neutral = null }) {
   if (!samples || samples.length === 0) throw new Error('No skin samples given');
   const space = resolveSpace(profile);
   if (!space) throw new Error(`Unsupported colour profile "${profile}"`);
   const warnings = [];
   const tagged = samples.map((rgb) => ({ rgb, lab: rgbToLab(rgb, space) }));
 
-  const memberGroups = splitByLightness ? groupByLightness(tagged) : [tagged];
-  let groups = memberGroups.map((m) => buildGroup(m, space, preset, strength));
-  if (groups.length > 1 && !groupsAreOrdered(groups)) {
+  let memberGroups = splitByLightness ? groupByLightness(tagged) : [tagged];
+  const build = (s) => memberGroups.map((m) => buildGroup(m, space, preset, s));
+  let groups = build(strength);
+  if (groups.length > 1 && !anchorsAreOrdered(groups)) {
     warnings.push('Samples could not be kept as separate tonal points; merged into one.');
-    groups = [buildGroup(tagged, space, preset, strength)];
+    memberGroups = [tagged];
+    groups = build(strength);
   }
-  const curves = curvesFromGroups(groups);
+
+  // Whites take priority: if skin and white can't both be met on a smooth
+  // curve, scale the skin correction back until they can.
+  let neutralRef = neutral ? buildNeutral(neutral, space) : null;
+  let skinStrength = strength;
+  const withNeutral = (gs) => [...gs, neutralRef].sort(byLightness);
+  const fits = (gs) => anchorsAreOrdered(withNeutral(gs), NEUTRAL_MIN_SPACING, NEUTRAL_MAX_SLOPE);
+  if (neutralRef && !fits(groups)) {
+    if (!fits(build(0))) {
+      warnings.push("White reference can't share a curve with the skin (it isn't brighter than the skin in every channel); ignored. Sample a clean, bright white.");
+      neutralRef = { ...neutralRef, ignored: true };
+    } else {
+      let lo = 0, hi = strength;
+      for (let i = 0; i < 12; i++) {
+        const mid = (lo + hi) / 2;
+        if (fits(build(mid))) lo = mid; else hi = mid;
+      }
+      skinStrength = lo;
+      groups = build(lo);
+      warnings.push(`To keep whites neutral, skin correction was reduced to ${Math.round(lo * 100)}%.`);
+    }
+  }
+  const anchors = neutralRef && !neutralRef.ignored ? withNeutral(groups) : groups;
+  const curves = curvesFromAnchors(anchors);
   const whites = CHANNELS.map((ch) => curves[ch][curves[ch].length - 1][1]);
-  if (Math.max(...whites) - Math.min(...whites) > 6) {
-    warnings.push(`Skin is close to white; whites shift to ${whites.join('/')}. Lower the strength to protect them.`);
+  if ((!neutralRef || neutralRef.ignored) && Math.max(...whites) - Math.min(...whites) > 6) {
+    warnings.push(`Skin is close to white; whites shift to ${whites.join('/')}. Lower the layer opacity or mask the layer to protect them.`);
   }
   if (groups.some((g) => !g.inGamut)) warnings.push('Target colour is outside the document gamut and was clipped.');
   const spread = Math.max(...tagged.map((s) => deltaE(s.lab, groups[0].inputLab)));
   if (groups.length === 1 && spread > 20) warnings.push('Samples vary a lot; check that they are all skin.');
 
-  return { space: space.name, preset, strength, groups, curves, warnings };
+  return { space: space.name, preset, strength, skinStrength, groups, neutral: neutralRef, curves, warnings };
 }
 
 // Natural cubic spline through the points, clamped to 0..255 - close to how

@@ -141,3 +141,44 @@ test('skin near white does not bend the rest of the channel', () => {
     assert.match(r.warnings.join(' '), /whites shift/);
   }
 });
+
+const USER_SKIN = [[252, 191, 144], [232, 177, 157], [249, 184, 142]];
+const isNeutral = (rgb, tol = 1.5) => Math.max(...rgb) - Math.min(...rgb) <= tol;
+
+test('a white reference well above the skin ends up neutral while skin hits its target', () => {
+  const samples = [[200, 150, 120], [205, 156, 124]];
+  const neutral = [246, 240, 228];
+  const r = core.solveCurves({ samples, neutral, profile: ADOBE, preset: 'caucasian' });
+  assert.ok(!r.neutral.ignored);
+  assert.equal(r.skinStrength, 1);
+  assert.ok(isNeutral(core.applyCurves(r.curves, neutral)), 'white is neutral');
+  const after = core.rgbToLab(core.applyCurves(r.curves, r.groups[0].inputRgb), adobe);
+  assert.ok(core.deltaE(after, r.groups[0].targetLab) < 1);
+  assert.doesNotMatch(r.warnings.join(' '), /whites shift/);
+});
+
+test('when skin is nearly as bright as the white, skin correction is scaled back', () => {
+  const neutral = [250, 247, 238];
+  const r = core.solveCurves({ samples: USER_SKIN, neutral, profile: 'sRGB', preset: 'caucasian' });
+  assert.ok(!r.neutral.ignored);
+  assert.ok(r.skinStrength > 0.5 && r.skinStrength < 1, `skin strength ${r.skinStrength}`);
+  assert.match(r.warnings.join(' '), /reduced to \d+%/);
+  assert.ok(isNeutral(core.applyCurves(r.curves, neutral)), 'white is neutral');
+  for (const ch of core.CHANNELS) {
+    let prev = core.evalCurve(r.curves[ch], 0);
+    for (let x = 1; x <= 255; x++) {
+      const y = core.evalCurve(r.curves[ch], x);
+      assert.ok(y - prev >= -0.5 && y - prev <= 3.5, `${ch} slope at ${x}: ${(y - prev).toFixed(2)}`);
+      prev = y;
+    }
+  }
+});
+
+test('a white reference that cannot share the curve is ignored with a warning', () => {
+  const r = core.solveCurves({ samples: USER_SKIN, neutral: [236, 240, 244], profile: 'sRGB', preset: 'caucasian' });
+  assert.ok(r.neutral.ignored);
+  assert.equal(r.skinStrength, 1);
+  assert.match(r.warnings.join(' '), /ignored/);
+  const plain = core.solveCurves({ samples: USER_SKIN, profile: 'sRGB', preset: 'caucasian' });
+  assert.deepEqual(r.curves, plain.curves);
+});
