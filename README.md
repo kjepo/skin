@@ -32,15 +32,11 @@ The solver (`plugin/core/solver.js`) groups samples by lightness, maps each
 group's mean RGB to the preset target at the same L (lightness is preserved),
 and emits one curve point per group per channel.
 
-## Install
-
-Download [`package/skin.tone.curves_PS.ccx`](package/skin.tone.curves_PS.ccx?raw=1)
-and double-click it; Creative Cloud installs it into Photoshop (2023 or later).
-The panel is under **Plugins → Skin Tone Curves → Skin color**.
-
 ## Use
 
-1. Install the plugin (above), or for development load `plugin/` in **UXP Developer Tool** (Add Plugin → `plugin/manifest.json` → Load).
+1. Download [skin.tone.curves_PS.ccx](package/skin.tone.curves_PS.ccx?raw=1) and
+   double-click it; Creative Cloud installs it into Photoshop (2023 or later). The
+   panel is under **Plugins → Skin Tone Curves → Skin color**.
 2. Open an RGB image (sRGB, Adobe RGB, Display P3 or ProPhoto RGB).
 3. Click the eyedropper in the panel: it selects the Color Sampler tool and sets its
    Sample Size to 11×11 Average. Click skin to drop samplers; the plugin always reads
@@ -58,6 +54,9 @@ The panel is under **Plugins → Skin Tone Curves → Skin color**.
    brighter than the skin in every channel can't share the curve and is ignored.
 
 ## Development
+
+Load `plugin/` in **UXP Developer Tool** (Add Plugin → `plugin/manifest.json` → Load);
+after editing, use Reload. Package with UXP Developer Tool → Package into `package/`.
 
 ```sh
 npm test            # core tests (Node ≥ 20), no Photoshop needed
