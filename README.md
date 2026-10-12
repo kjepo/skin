@@ -3,6 +3,10 @@
 A Photoshop UXP plugin that sets skin colour with an RGB Curves adjustment layer,
 using presets derived from Lee Varis, *Skin* (2nd ed., ch. 3).
 
+| Before | After (Caucasian preset) |
+|---|---|
+| ![Before](before.png) | ![After](after.png) |
+
 ## How it works
 
 Varis gives skin targets as CMY ratios in Photoshop's Info panel (SWOP v2), e.g.
