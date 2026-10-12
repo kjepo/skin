@@ -34,7 +34,7 @@ and emits one curve point per group per channel.
 
 ## Use
 
-1. Download [skin.tone.curves_PS.ccx](package/skin.tone.curves_PS.ccx?raw=1) and
+1. Download [skin.tone.curves_PS.ccx](https://github.com/kjepo/skin/raw/main/package/skin.tone.curves_PS.ccx) and
    double-click it; Creative Cloud installs it into Photoshop (2023 or later). The
    panel is under **Plugins → Skin Tone Curves → Skin color**.
 2. Open an RGB image (sRGB, Adobe RGB, Display P3 or ProPhoto RGB).
