@@ -7,6 +7,51 @@ using presets derived from Lee Varis, *Skin* (2nd ed., ch. 3).
 |---|---|
 | ![Before](before.png) | ![After](after.png) |
 
+## Background: *Skin*, chapter 3
+
+In chapter 3 of *Skin*, "The Color of Skin", Lee Varis argues that skin colour
+should be judged by the numbers, not by eye. Our eyes adapt to colour casts, so a
+photo that looks fine can still read too yellow, too red or too grey.
+
+His method uses the Info panel with an 11×11 average sample and a CMYK readout.
+Good skin has magenta and yellow almost equal, with yellow a few points higher but
+not more than 10–15. Cyan should be about a quarter to a third of yellow; more than
+that makes skin look grey. Highlights read lower overall, and shadows carry
+relatively more cyan.
+
+The ratios shift a little between groups:
+
+- **Children:** lighter and pinker, though magenta should still not overtake yellow
+  except on cheeks and lips.
+- **Dark skin:** more cyan, with magenta raised up to equal yellow to avoid a green look.
+- **Asian skin:** slightly more yellow, but not too yellow.
+
+Varis corrects with a Curves adjustment layer, adjusting each RGB channel. Red
+controls cyan, green controls magenta and blue controls yellow. First he finds the
+real white and black points with a temporary Threshold layer and makes them neutral
+(about 245 and 15). Then he moves the skin towards the target ratios, reading several
+areas, not a single spot.
+
+Finally he stresses that these numbers are guidelines. Taste varies between cultures
+and clients: some want paler skin, some a "California tan". Good reproduced skin is
+usually an idealised version, not literally accurate colour.
+
+### What the plugin does
+
+It reads your samplers as 11×11 averages and builds a per-channel RGB Curves layer
+that moves the skin to the book's ratios for Caucasian, Child, Asian or African skin.
+It keeps lightness, can optionally keep one white neutral, and leaves the strength to
+the layer's opacity.
+
+### What it doesn't do
+
+- set the black and white points or find them for you;
+- set contrast or tone;
+- treat cheeks and lips specially, or mask the correction to the skin;
+- handle the cultural or personal preferences Varis describes.
+
+It sets a sensible starting colour, and you still judge the result yourself.
+
 ## How it works
 
 Varis gives skin targets as CMY ratios in Photoshop's Info panel (SWOP v2), e.g.
