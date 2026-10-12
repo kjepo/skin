@@ -32,8 +32,9 @@ and emits one curve point per group per channel.
 
 1. Load `plugin/` in **UXP Developer Tool** (Add Plugin → `plugin/manifest.json` → Load).
 2. Open an RGB image (sRGB, Adobe RGB, Display P3 or ProPhoto RGB).
-3. Click **Color Sampler** in the panel to select the tool. Set its Sample Size to
-   5×5 or 11×11 Average in the options bar, then click skin to drop samplers. Midtones (forehead, cheek, chin) matter most; add a
+3. Click the eyedropper in the panel: it selects the Color Sampler tool and sets its
+   Sample Size to 11×11 Average. Click skin to drop samplers; the plugin always reads
+   each one as an 11×11 average, whatever the tool setting. Midtones (forehead, cheek, chin) matter most; add a
    highlight and a shadow sampler for separate tonal points.
 4. In the **Skin color** panel click a preset face, then **Analyze** (preview with
    Info-panel style CMYK) or **Apply** (adds a `Skin Tone – <preset>` Curves layer).

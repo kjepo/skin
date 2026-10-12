@@ -3,11 +3,16 @@
 // RGB curves toward the chosen preset (see core/), and writes them as a
 // Curves adjustment layer.
 
-const { app, core: psCore, action, constants } = require('photoshop');
+const { app, core: psCore, action, constants, imaging } = require('photoshop');
 const { entrypoints } = require('uxp');
 const skin = require('./core/index.js');
 
 const LAYER_PREFIX = 'Skin Tone – ';
+// Samplers are read as the average of an 11 x 11 pixel square, like the
+// Info panel with Sample Size "11 by 11 Average". Scripted sampler colours are
+// always single pixels whatever the tool setting, so the plugin averages itself.
+const SAMPLE_RADIUS = 5;
+const EYEDROPPER_11X11 = 5; // eyeDropperSample value: the radius (0 = point sample)
 
 const $ = (id) => document.getElementById(id);
 
@@ -70,7 +75,14 @@ function updateDetailsToggle() {
 async function selectSamplerTool() {
   try {
     await psCore.executeAsModal(
-      () => action.batchPlay([{ _obj: 'select', _target: [{ _ref: 'colorSamplerTool' }] }], {}),
+      () => action.batchPlay([
+        { _obj: 'select', _target: [{ _ref: 'colorSamplerTool' }] },
+        {
+          _obj: 'set',
+          _target: [{ _ref: 'colorSamplerTool' }],
+          to: { _obj: 'currentToolOptions', eyeDropperSample: EYEDROPPER_11X11 },
+        },
+      ], {}),
       { commandName: 'Select Color Sampler Tool' },
     );
   } catch (e) {
@@ -104,12 +116,42 @@ function activeRgbDocument() {
   return doc;
 }
 
-function readSamplers(doc) {
+// Mean RGB (0-255) of the square around a sampler, from the visible composite.
+async function averageAround(doc, position) {
+  const x = Math.floor(position.x), y = Math.floor(position.y);
+  const { imageData } = await imaging.getPixels({
+    documentID: doc.id,
+    sourceBounds: {
+      left: Math.max(0, x - SAMPLE_RADIUS),
+      top: Math.max(0, y - SAMPLE_RADIUS),
+      right: Math.min(doc.width, x + SAMPLE_RADIUS + 1),
+      bottom: Math.min(doc.height, y + SAMPLE_RADIUS + 1),
+    },
+    componentSize: 8,
+  });
+  try {
+    const data = await imageData.getData();
+    const n = imageData.width * imageData.height, step = imageData.components;
+    const sum = [0, 0, 0];
+    for (let i = 0; i < n; i++) for (let c = 0; c < 3; c++) sum[c] += data[i * step + c];
+    return sum.map((v) => v / n);
+  } finally {
+    imageData.dispose();
+  }
+}
+
+// Must run inside executeAsModal (getPixels requires it).
+async function readSamplers(doc) {
   const samplers = doc.colorSamplers;
   const out = [];
   for (let i = 0; i < samplers.length; i++) {
-    const { red, green, blue } = samplers[i].color.rgb;
-    out.push([red, green, blue]);
+    try {
+      out.push(await averageAround(doc, samplers[i].position));
+    } catch (e) {
+      console.warn('Averaging failed, using the single sampled pixel', e);
+      const { red, green, blue } = samplers[i].color.rgb;
+      out.push([red, green, blue]);
+    }
   }
   if (out.length === 0) {
     selectSamplerTool();
@@ -125,11 +167,21 @@ function splitSamples(all, opts) {
   return { samples: all.slice(0, -1), neutral: all[all.length - 1] };
 }
 
-function solve(doc, opts) {
-  const all = readSamplers(doc);
+// Samples the image without our previous correction on top of it. Must run
+// inside executeAsModal.
+async function solve(doc, opts) {
+  const previous = findSkinLayers(doc.layers);
+  const wasVisible = previous.map((l) => l.visible);
+  previous.forEach((l) => { l.visible = false; });
+  let all;
+  try {
+    all = await readSamplers(doc);
+  } finally {
+    previous.forEach((l, i) => { l.visible = wasVisible[i]; });
+  }
   const { samples, neutral } = splitSamples(all, opts);
   const result = skin.solveCurves({ samples, neutral, profile: doc.colorProfileName, ...opts });
-  return { samples, neutral, result };
+  return { samples, neutral, result, previous };
 }
 
 function findSkinLayers(layers, found = []) {
@@ -189,7 +241,8 @@ function render({ samples, neutral, result }, profile) {
 
 async function analyze(opts) {
   const doc = activeRgbDocument();
-  const solved = solve(doc, opts);
+  let solved;
+  await psCore.executeAsModal(async () => { solved = await solve(doc, opts); }, { commandName: 'Analyze Skin Samplers' });
   render(solved, doc.colorProfileName);
   setStatus(['Preview of Apply (→ values are predicted).', ...solved.result.warnings].join(' '));
 }
@@ -211,16 +264,8 @@ async function apply(opts) {
   const label = skin.PRESETS.find((p) => p.key === opts.preset).label;
   let solved;
   await psCore.executeAsModal(async () => {
-    // Sample the image without our previous correction on top of it.
-    const previous = findSkinLayers(doc.layers);
-    const wasVisible = previous.map((l) => l.visible);
-    previous.forEach((l) => { l.visible = false; });
-    try {
-      solved = solve(doc, opts);
-    } finally {
-      previous.forEach((l, i) => { l.visible = wasVisible[i]; });
-    }
-    if (opts.replace) previous.forEach((l) => l.delete());
+    solved = await solve(doc, opts);
+    if (opts.replace) solved.previous.forEach((l) => l.delete());
 
     await action.batchPlay([
       {
