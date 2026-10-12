@@ -52,6 +52,15 @@ the layer's opacity.
 
 It sets a sensible starting colour, and you still judge the result yourself.
 
+## Recommended reading
+
+Lee Varis, *Skin: The Complete Guide to Digitally Lighting, Photographing, and
+Retouching Faces and Bodies*, 2nd ed. (Sybex/Wiley, 2010), ISBN 978-0-470-59212-0.
+
+Highly recommended. This plugin automates only one step from chapter 3; the book
+covers the whole craft of photographing people, from lighting and capture to colour,
+tone, retouching and print, and explains the judgement behind the numbers.
+
 ## How it works
 
 Varis gives skin targets as CMY ratios in Photoshop's Info panel (SWOP v2), e.g.
